@@ -13,6 +13,14 @@ export default function TaskLog() {
     setApps(logs);
   }, []);
 
+  const updateStatus = (id: string, newStatus: Application['status']) => {
+    const updatedApps = apps.map(app => 
+      app.id === id ? { ...app, status: newStatus } : app
+    );
+    setApps(updatedApps);
+    localStorage.setItem('interview_logs', JSON.stringify(updatedApps));
+  };
+
   const stats = [
     { label: '总申请数', value: apps.length, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50', sub: '本周 +12%', subColor: 'text-green-600' },
     { label: '进行中', value: apps.filter(a => a.status === 'interviewing').length, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50', sub: '等待面试', subColor: 'text-orange-600' },
@@ -85,7 +93,21 @@ export default function TaskLog() {
                       <td className="px-8 py-6 text-sm text-on-surface-variant font-medium">{app.role}</td>
                       <td className="px-8 py-6 text-sm text-slate-400">{app.date}</td>
                       <td className="px-8 py-6">
-                        <span className={`px-3 py-1 ${statusColor} text-xs font-bold rounded-full`}>{statusLabel}</span>
+                        <div className="relative group/status">
+                          <select 
+                            value={app.status}
+                            onChange={(e) => updateStatus(app.id, e.target.value as Application['status'])}
+                            className={cn(
+                              "appearance-none px-3 py-1 text-xs font-bold rounded-full cursor-pointer focus:outline-none pr-6",
+                              statusColor
+                            )}
+                          >
+                            <option value="interviewing">面试中</option>
+                            <option value="offered">已录用</option>
+                            <option value="rejected">已拒绝</option>
+                          </select>
+                          <ChevronDown className="w-3 h-3 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
+                        </div>
                       </td>
                       <td className="px-8 py-6">
                         <div className="w-48">

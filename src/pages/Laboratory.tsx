@@ -43,6 +43,7 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showIntelligence, setShowIntelligence] = useState(false);
   const [intelData, setIntelData] = useState<IntelligenceData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +81,7 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
     if (!company || !jd) return;
     
     setIsAnalyzing(true);
+    setError(null);
     try {
       const apiResponse = await fetch('/api/intelligence', {
         method: 'POST',
@@ -161,10 +163,14 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
       });
 
       if (!apiResponse.ok) {
-        throw new Error('API request failed');
+        const errorData = await apiResponse.json();
+        throw new Error(errorData.error || 'API request failed');
       }
 
       const response = await apiResponse.json();
+      if (!response.text) {
+        throw new Error('AI 响应为空，请稍后重试。');
+      }
       const data = JSON.parse(response.text);
       setIntelData(data);
       setShowIntelligence(true);
@@ -174,8 +180,9 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
         const intelSection = document.getElementById('intelligence-section');
         intelSection?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Intelligence Analysis Error:", error);
+      setError(error.message || "分析过程中出现未知错误，请检查网络或 API 配置。");
     } finally {
       setIsAnalyzing(false);
     }
@@ -353,6 +360,17 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
               <ArrowRight className="w-6 h-6" />
             </button>
           </div>
+
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700"
+            >
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm font-medium">{error}</p>
+            </motion.div>
+          )}
         </div>
 
         <div className="col-span-4 space-y-8">

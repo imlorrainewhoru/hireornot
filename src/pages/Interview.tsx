@@ -271,8 +271,14 @@ export default function Interview({ onBack, onFinish }: InterviewProps) {
         };
         setMessages(prev => [...prev, aiMessage]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Gemini API Error:", error);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `【系统错误】：${error.message || '无法连接到 AI 质询官。请检查网络或 API 配置。'}`,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }

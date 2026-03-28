@@ -6,16 +6,21 @@ import { Application, InterviewResult } from '../types';
 import { cn } from '../lib/utils';
 
 export default function Verdict() {
-  const [latestApp, setLatestApp] = useState<Application | null>(null);
+  const [apps, setApps] = useState<Application[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const loadLogs = () => {
+    const logs = JSON.parse(localStorage.getItem('interview_logs') || '[]');
+    setApps(logs);
+  };
 
   useEffect(() => {
-    const logs = JSON.parse(localStorage.getItem('interview_logs') || '[]');
-    if (logs.length > 0) {
-      setLatestApp(logs[0]);
-    }
+    loadLogs();
   }, []);
 
-  if (!latestApp || !latestApp.result) {
+  const latestApp = apps[selectedIndex];
+
+  if (!apps.length || !latestApp || !latestApp.result) {
     return (
       <div className="p-12 max-w-6xl mx-auto h-[80vh] flex flex-col items-center justify-center text-center space-y-6">
         <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center text-slate-300">
@@ -25,8 +30,11 @@ export default function Verdict() {
           <h2 className="text-3xl font-bold text-on-surface mb-2">暂无面试裁决报告</h2>
           <p className="text-on-surface-variant max-w-md">你还没有完成任何模拟面试。请先前往“实验室”开启你的第一场职场实战演练。</p>
         </div>
-        <button className="bg-primary-container text-on-primary-container px-8 py-4 rounded-xl font-bold text-lg shadow-xl shadow-orange-500/10 hover:scale-105 transition-transform">
-          前往实验室
+        <button 
+          onClick={() => window.location.reload()}
+          className="bg-primary-container text-on-primary-container px-8 py-4 rounded-xl font-bold text-lg shadow-xl shadow-orange-500/10 hover:scale-105 transition-transform"
+        >
+          刷新数据
         </button>
       </div>
     );
@@ -43,6 +51,33 @@ export default function Verdict() {
 
   return (
     <div className="p-12 max-w-6xl mx-auto space-y-12">
+      {/* Report Selector */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold text-on-surface">面试裁决报告</h2>
+          <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg border border-slate-100">
+            <Clock className="w-4 h-4 text-slate-400" />
+            <select 
+              value={selectedIndex}
+              onChange={(e) => setSelectedIndex(parseInt(e.target.value))}
+              className="bg-transparent text-sm font-bold text-on-surface-variant focus:outline-none cursor-pointer"
+            >
+              {apps.map((app, i) => (
+                <option key={app.id} value={i}>
+                  {app.company} - {app.role} ({app.date})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button 
+          onClick={loadLogs}
+          className="flex items-center gap-2 text-sm font-bold text-primary hover:opacity-80 transition-opacity"
+        >
+          <TrendingUp className="w-4 h-4" /> 刷新最新数据
+        </button>
+      </div>
+
       <div className="grid grid-cols-12 gap-8">
         {/* Probability Card */}
         <div className="col-span-8 bg-gradient-to-br from-on-surface to-slate-800 p-10 rounded-2xl text-white shadow-xl shadow-slate-900/20 relative overflow-hidden">

@@ -27,7 +27,11 @@ app.post("/api/interview", async (req, res) => {
       config,
     });
 
-    res.json(response);
+    res.json({
+      text: response.text,
+      candidates: response.candidates,
+      usageMetadata: response.usageMetadata,
+    });
   } catch (error: any) {
     console.error("Interview API Error:", error);
     res.status(500).json({ error: error.message || "Internal Server Error" });
@@ -50,7 +54,11 @@ app.post("/api/intelligence", async (req, res) => {
       config,
     });
 
-    res.json(response);
+    res.json({
+      text: response.text,
+      candidates: response.candidates,
+      usageMetadata: response.usageMetadata,
+    });
   } catch (error: any) {
     console.error("Intelligence API Error:", error);
     res.status(500).json({ error: error.message || "Internal Server Error" });
