@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { Upload, ArrowRight, Lightbulb, Quote, FileText, X, CheckCircle, TrendingUp, AlertTriangle, Brain, Zap, Download, BarChart3, Search, ShieldCheck, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
-import { GoogleGenAI, Type } from "@google/genai";
 
 interface LaboratoryProps {
   onStartInterview: () => void;
@@ -82,82 +81,90 @@ export default function Laboratory({ onStartInterview }: LaboratoryProps) {
     
     setIsAnalyzing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `你是一名资深的职业顾问，专门为实习生和应届生提供求职情报。
-        目标公司：${company}
-        职位描述：${jd}
-        
-        请利用 Google Search 搜索该公司的最新真实信息，并为实习生/应届生量身定制一份深度情报报告。
-        必须包含：
-        1. 行业地位（针对该岗位的细分领域）。
-        2. 近期动态（融资、业务调整、校招/实习生招聘趋势）。
-        3. 核心竞对分析。
-        4. 面试避坑指南（特别针对缺乏经验的应届生，如：考察重点、文化偏好、面试官常见陷阱）。
-        
-        请确保数据真实、时效性强。`,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              marketStatus: {
-                type: Type.OBJECT,
-                properties: {
-                  rank: { type: Type.STRING, description: "行业排名，如 TOP 3" },
-                  share: { type: Type.STRING, description: "市场占有率或增长率" },
-                  trend: { type: Type.STRING, description: "增长趋势，如 ↑ 15%" },
-                  retention: { type: Type.STRING, description: "人才留存率或校招口碑" },
-                  competitiveness: { type: Type.STRING, description: "薪酬竞争力，如 P75" },
-                  sector: { type: Type.STRING, description: "细分赛道名称" }
+      const apiResponse = await fetch('/api/intelligence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3-flash-preview",
+          contents: `你是一名资深的职业顾问，专门为实习生和应届生提供求职情报。
+          目标公司：${company}
+          职位描述：${jd}
+          
+          请利用 Google Search 搜索该公司的最新真实信息，并为实习生/应届生量身定制一份深度情报报告。
+          必须包含：
+          1. 行业地位（针对该岗位的细分领域）。
+          2. 近期动态（融资、业务调整、校招/实习生招聘趋势）。
+          3. 核心竞对分析。
+          4. 面试避坑指南（特别针对缺乏经验的应届生，如：考察重点、文化偏好、面试官常见陷阱）。
+          
+          请确保数据真实、时效性强。`,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                marketStatus: {
+                  type: "OBJECT",
+                  properties: {
+                    rank: { type: "STRING", description: "行业排名，如 TOP 3" },
+                    share: { type: "STRING", description: "市场占有率或增长率" },
+                    trend: { type: "STRING", description: "增长趋势，如 ↑ 15%" },
+                    retention: { type: "STRING", description: "人才留存率或校招口碑" },
+                    competitiveness: { type: "STRING", description: "薪酬竞争力，如 P75" },
+                    sector: { type: "STRING", description: "细分赛道名称" }
+                  },
+                  required: ["rank", "share", "trend", "retention", "competitiveness", "sector"]
                 },
-                required: ["rank", "share", "trend", "retention", "competitiveness", "sector"]
-              },
-              recentTrends: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    date: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    detail: { type: Type.STRING },
-                    type: { type: Type.STRING, enum: ["info", "warning", "success"] }
-                  },
-                  required: ["date", "title", "detail", "type"]
+                recentTrends: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      date: { type: "STRING" },
+                      title: { type: "STRING" },
+                      detail: { type: "STRING" },
+                      type: { type: "STRING", enum: ["info", "warning", "success"] }
+                    },
+                    required: ["date", "title", "detail", "type"]
+                  }
+                },
+                competitors: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      name: { type: "STRING" },
+                      desc: { type: "STRING" },
+                      detail: { type: "STRING" },
+                      tags: { type: "ARRAY", items: { type: "STRING" } }
+                    },
+                    required: ["name", "desc", "detail", "tags"]
+                  }
+                },
+                pitfalls: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      title: { type: "STRING" },
+                      text: { type: "STRING" }
+                    },
+                    required: ["title", "text"]
+                  }
                 }
               },
-              competitors: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    name: { type: Type.STRING },
-                    desc: { type: Type.STRING },
-                    detail: { type: Type.STRING },
-                    tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  },
-                  required: ["name", "desc", "detail", "tags"]
-                }
-              },
-              pitfalls: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    text: { type: Type.STRING }
-                  },
-                  required: ["title", "text"]
-                }
-              }
-            },
-            required: ["marketStatus", "recentTrends", "competitors", "pitfalls"]
+              required: ["marketStatus", "recentTrends", "competitors", "pitfalls"]
+            }
           }
-        }
+        })
       });
 
+      if (!apiResponse.ok) {
+        throw new Error('API request failed');
+      }
+
+      const response = await apiResponse.json();
       const data = JSON.parse(response.text);
       setIntelData(data);
       setShowIntelligence(true);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Mic, Paperclip, ShieldAlert, Activity, BrainCircuit, User, Bot, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle, FileText, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI, Type } from "@google/genai";
 import { cn } from '../lib/utils';
 import { InterviewResult, Application, Message } from '../types';
 
@@ -125,8 +124,6 @@ export default function Interview({ onBack, onFinish }: InterviewProps) {
     }));
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-      
       const systemInstruction = `你是一名极其严格、结果导向的面试官，目标不是帮助候选人感觉良好，而是判断他是否能通过面试。
 你的行为必须遵循以下原则：
 【核心目标】
@@ -185,29 +182,38 @@ export default function Interview({ onBack, onFinish }: InterviewProps) {
       const currentRole = localStorage.getItem('current_role') || '未知职位';
       const currentJD = localStorage.getItem('current_jd') || '未提供JD';
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          ...messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
-          { role: 'user', parts: [{ text: `
-            [目标岗位上下文]
-            公司：${currentCompany}
-            职位：${currentRole}
-            JD：${currentJD}
+      const apiResponse = await fetch('/api/interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "gemini-3-flash-preview",
+          contents: [
+            ...messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
+            { role: 'user', parts: [{ text: `
+              [目标岗位上下文]
+              公司：${currentCompany}
+              职位：${currentRole}
+              JD：${currentJD}
 
-            [当前面试阶段：${STAGE_LABELS[nextStage]}]
-            [阶段指令：${stagePrompts[nextStage]}]
-            候选人最新回答："${input}"
-            
-            ${isFinalReport ? "请直接输出 JSON 报告。" : "请根据指令进行质询。保持冷酷专业的语气。"}
-          ` }] }
-        ],
-        config: {
-          systemInstruction: systemInstruction,
-          responseMimeType: isFinalReport ? "application/json" : "text/plain"
-        }
+              [当前面试阶段：${STAGE_LABELS[nextStage]}]
+              [阶段指令：${stagePrompts[nextStage]}]
+              候选人最新回答："${input}"
+              
+              ${isFinalReport ? "请直接输出 JSON 报告。" : "请根据指令进行质询。保持冷酷专业的语气。"}
+            ` }] }
+          ],
+          config: {
+            systemInstruction: systemInstruction,
+            responseMimeType: isFinalReport ? "application/json" : "text/plain"
+          }
+        })
       });
 
+      if (!apiResponse.ok) {
+        throw new Error('API request failed');
+      }
+
+      const response = await apiResponse.json();
       const aiContent = response.text || '由于系统波动，我暂时无法给出评价。请继续。';
       
       if (isFinalReport) {
